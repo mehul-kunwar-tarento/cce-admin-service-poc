@@ -1094,4 +1094,4 @@ Empty until v1 is frozen. After that, every change to this spec gets a line.
 
 | Date | Section | Change | Why |
 |---|---|---|---|
-| — | | | |
+| 2026-11-11 | §4 (all sub-tasks) | Added `docs/` with 6 empty files in the team's format (`architecture-overview`, `api-reference`, `data-dictionary`, `flow-diagrams`, `developer-setup`, `monitoring-alerting`, as in `tiberbu-cce-emitter-adaptor` commit `4c7d604`). Each sub-task fills the parts of these docs it builds, in the same commit; a sub-task is not done until its docs part is written | Match the team's documentation format; docs written while building stay true to the code |
