@@ -9,8 +9,9 @@ Written 5 Nov 2026 from the CCE v2 Admin Module PRD (29 Oct 2026). The team's de
 >
 > **Scope:** the **backend service only**. The admin UI (`cce-admin-ui`) is a separate repo and
 > comes later; until then the service is driven through Swagger UI and curl. This is a learning
-> exercise in spec-driven development and runs **locally only**. This doc is the input for
-> `SPEC.md` (decisions + sub-tasks), which is written next.
+> exercise in spec-driven development. It is built and tested locally and **designed to be
+> deployed to dev** (and other environments later); nothing goes to prod as part of this
+> exercise. The decisions and sub-tasks are in `SPEC.md`.
 
 ---
 
@@ -269,7 +270,9 @@ and the gateway is configured correctly. There are four reasons to check again:
 
 ---
 
-## 9. Running it (local only)
+## 9. Running it
+
+### Locally (building and testing)
 
 | Item | Value |
 |---|---|
@@ -278,9 +281,25 @@ and the gateway is configured correctly. There are four reasons to check again:
 | Trying it out | Swagger UI at `http://localhost:8085/swagger-ui.html`, or curl with a token from Keycloak |
 | Keycloak realm | confidential service-account client for the service; a client to get test tokens from; one test SUPER_ADMIN |
 | Gateway | Optional locally. Call the service directly. `GatewaySyncClient` can be a stub, or point at a local gateway-service to test the real sync |
-| Seed | SUPER_ADMIN in Keycloak + local `users` row + `api_permissions` rows for `/admin/v1/**`, in the Flyway seed or a local script |
 
-Not done in this exercise: Docker images for envs, k8s manifests, Jenkins, ingress.
+### Deployed (dev first, other environments later)
+
+| Item | Value |
+|---|---|
+| Image | Docker image of the service, port 8085 |
+| k8s | Deployment + ClusterIP Service in `deploy-scripts` (not exposed directly; reached only through the gateway) |
+| Gateway route | `/admin/**` → admin-service (already in the gateway's `application.yml` as `ADMIN_SERVICE_URI`) plus an ingress path so `/admin` reaches the gateway |
+| Keycloak (per env) | Service-account client for the service; SUPER_ADMIN realm role + first admin user created by hand once |
+| Config | DB, Keycloak, `JWT_*`, `GATEWAY_BASE_URL`, `BOOTSTRAP_ADMIN_USERNAME` from env vars / secrets; nothing env-specific in the repo |
+
+### Seeding (SPEC D5)
+
+| What | How |
+|---|---|
+| 12 menus, SUPER_ADMIN role, its `/admin/v1/**` rows | `db/migration/V2__seed.sql`, same in every environment |
+| First admin user (`users` + `user_roles`) | Created by hand in that environment's Keycloak; on startup `BootstrapAdminRunner` looks it up by `BOOTSTRAP_ADMIN_USERNAME` and inserts the rows |
+
+Not in this exercise: prod deployment, Jenkins pipeline.
 
 ---
 
@@ -294,7 +313,7 @@ Each of these becomes a decision (D1, D2, …) in `SPEC.md`, with a date and the
 | 2 | Who creates `api_permissions` — the gateway's own `V1__create_api_permissions_table.sql` or our Flyway? | Need one owner, otherwise two migrations fight over the same table. Decide before the schema sub-task. |
 | 3 | Gateway sync returns **206** on partial failure (some roles failed), not only 500 | Treat anything except 200 as `KEYCLOAK_SYNC_FAILED`. |
 | 4 | Gateway sync reports `deletedCount`: it may delete realm roles that have no `api_permissions` rows | A new role with zero permissions might never get (or might lose) its realm role. Check in `PermissionSyncService` before the permissions sub-task. |
-| 5 | Bootstrap: first SUPER_ADMIN + its permission rows | Local seed only (see §9). |
+| 5 | Bootstrap: first SUPER_ADMIN + its permission rows | Shared Flyway seed for the role; startup lookup in Keycloak for the admin user (see §9 and SPEC D5). |
 | 6 | Every console role needs a permission row for `GET /admin/v1/me/menus` | Add it to the seed and to the role-create default. |
 | 7 | `last_login_at` "updated by a callback" — not specified | Leave the column, don't fill it in v2 unless defined. |
 | 8 | 502 cleanup is manual: an operator reads `audit_log` | Accepted. Covered by a test that asserts the audit row. |
@@ -304,6 +323,7 @@ Each of these becomes a decision (D1, D2, …) in `SPEC.md`, with a date and the
 ## 11. Out of scope
 
 - The admin UI (`cce-admin-ui`): separate repo, later
+- Prod deployment and a Jenkins pipeline
 - Changing `cce-insights-ui` to build its sidebar from `/me/menus`
 - From the PRD, not in v2: audit log read endpoint · global permission catalog · enforcing
   `facility_scope` · deriving permissions from menus · hard delete of users
