@@ -1053,25 +1053,41 @@ S0 ─► S1 ─┬─► S2 ─► S3 ─► S4 ─┬─► S2a ────�
 
 In build order, 8h per working day. Not working Mon 16 – Wed 18 Nov (leave). No dev deploy: the showcase runs locally (S13) (decided 2026-11-11). Running past 30 Nov is acceptable.
 
-| Sub-task | Est. (h) | Planned day |
+Built in the PRD's milestone order (M0 → B1 → B2 → B3 → B4 → B5 → E2E). Shashank reviews each milestone the same day it is done. Days without a review still end with a small demo of that day's sub-task.
+
+**Sub-tasks per milestone:**
+
+| PRD milestone | PRD "done" check | Sub-tasks | Hours |
+|---|---|---|---|
+| **M0** Local env | Log in to Keycloak as the test admin | S0 | 3 |
+| **B1** Service skeleton | Migrations + seed run; `/health` UP; bad token → 401 | S1, S2, S3 | 15 |
+| **B2** Roles + menus | Create a role, map menus via Swagger; audit rows appear; DETAIL-only warning | S4, S2a, S6a, S5, S6, S7 | 29 |
+| **B3** Users + Keycloak | POST /users creates a Keycloak user with a role; deactivate disables it | S8, S9, S10 | 22 |
+| **B4** Permissions + sync | Permissions saved; sync called; simulated failure → 502 | S11 | 6 |
+| **B5** Current user | Two overlapping roles → correct merged menu tree | S12 | 4 |
+| **E2E** | Scenarios S1–S6 against the real service | S13 | 6 |
+| **Total** | | | **85** (~10.5 days at 8h) |
+
+S4, S2a and S6a are built in B2 because B2's own check needs them: S4 is B-50 (listed under B2 in the PRD), "create a role via Swagger" needs a real logged-in admin (S2a), and creating a role syncs immediately (D4 → S6a).
+
+**Day plan:**
+
+| Day | Work | Milestone review |
 |---|---|---|
-| S0 Local environment | 3 | Wed 11 (pm) |
-| S1 Project skeleton, health, envelope, errors | 5 | Thu 12 |
-| S6a Gateway sync client | 3 | Thu 12 |
-| S2 Flyway schema + seed | 4 | Fri 13 |
-| S3 Security | 6 | Fri 13 – Thu 19 |
-| S4 Audit writer | 4 | Thu 19 |
-| S2a Bootstrap admin | 5 | Thu 19 – Fri 20 |
-| S5 Menus CRUD | 6 | Fri 20 – Mon 23 |
-| S6 Roles CRUD + guards | 7 | Mon 23 |
-| S7 Role → menus | 4 | Tue 24 |
-| S8 Keycloak client (extend) + create user | 7 | Tue 24 – Wed 25 |
-| S11 Role → permissions + gateway sync | 6 | Wed 25 – Thu 26 |
-| S9 Users list / get / update | 7 | Thu 26 |
-| S10 User status, roles diff, reset password | 8 | Fri 27 |
-| S12 Current user | 4 | Mon 30 |
-| S13 Backend run-through | 6 | Mon 30 – Tue 1 Dec |
-| **Total** | **85** (~10.5 days at 8h) | |
+| Thu 12 | S0 + S1 | **M0** |
+| Fri 13 | S2 + S3 (start) | |
+| Mon 16 – Wed 18 | *leave* | |
+| Thu 19 | S3 (finish) + S4 + S2a (start) | **B1** |
+| Fri 20 | S2a (finish) + S6a + S5 (start) | |
+| Mon 23 | S5 (finish) + S6 (start) | |
+| Tue 24 | S6 (finish) + S7 | **B2** |
+| Wed 25 | S8 + S9 (start) | |
+| Thu 26 | S9 (finish) + S10 (start) | |
+| Fri 27 | S10 (finish) + S11 (start) | **B3** |
+| Mon 30 | S11 (finish) + S12 | **B4 + B5** |
+| Tue 1 Dec | S13 | **E2E (final)** |
+
+Tight spot: B2 is the largest milestone (~3.5 days). If it slips, later milestones move with it; running past 30 Nov is acceptable.
 
 Excludes resolving D13 / D14 (waiting on the lead).
 
@@ -1095,3 +1111,4 @@ Empty until v1 is frozen. After that, every change to this spec gets a line.
 | Date | Section | Change | Why |
 |---|---|---|---|
 | 2026-11-11 | §4 (all sub-tasks) | Added `docs/` with 6 empty files in the team's format (`architecture-overview`, `api-reference`, `data-dictionary`, `flow-diagrams`, `developer-setup`, `monitoring-alerting`, as in `tiberbu-cce-emitter-adaptor` commit `4c7d604`). Each sub-task fills the parts of these docs it builds, in the same commit; a sub-task is not done until its docs part is written | Match the team's documentation format; docs written while building stay true to the code |
+| 2026-11-12 | §7 | Replaced the per-sub-task day list with a plan grouped by PRD milestone (M0 → B1 → B2 → B3 → B4 → B5 → E2E): sub-tasks per milestone, a day plan, and review days. S4, S2a and S6a are built inside B2. Total hours unchanged (85) | Team agreed on 2026-11-11 that Shashank reviews each milestone the same day it is done, so the build follows the PRD's milestone order and each milestone has a clear finish day |
