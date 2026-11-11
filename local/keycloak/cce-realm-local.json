@@ -1,0 +1,66 @@
+{
+  "realm": "cce",
+  "enabled": true,
+  "displayName": "CCE (local)",
+
+  "roles": {
+    "realm": [
+      {
+        "name": "SUPER_ADMIN",
+        "description": "Full access to the admin API (/admin/v1/**). System role, see SPEC D5."
+      }
+    ]
+  },
+
+  "clients": [
+    {
+      "clientId": "cce-admin-service",
+      "name": "cce-admin-service (Keycloak Admin API)",
+      "description": "Service account used by cce-admin-service. Secret comes from .env.",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${KEYCLOAK_CLIENT_SECRET}",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false
+    },
+    {
+      "clientId": "cce-admin-local",
+      "name": "cce-admin-local (test tokens)",
+      "description": "Public client for local/get-token.sh (browser-style login). Local only.",
+      "enabled": true,
+      "publicClient": true,
+      "serviceAccountsEnabled": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:9999/callback"],
+      "protocolMappers": [
+        {
+          "name": "audience cce-admin-service",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "cce-admin-service",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+
+  "users": [
+    {
+      "username": "service-account-cce-admin-service",
+      "enabled": true,
+      "serviceAccountClientId": "cce-admin-service",
+      "clientRoles": {
+        "realm-management": ["view-users", "query-users", "manage-users"]
+      }
+    }
+  ]
+}

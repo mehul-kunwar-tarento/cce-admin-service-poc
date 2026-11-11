@@ -1,0 +1,64 @@
+# Local environment for cce-admin-service (SPEC S0).
+# Ports 5434 and 8180 avoid 5433 and 8080, used by extras/cce-local-setup.
+# Values come from .env (copy .env.example to .env first).
+
+name: cce-admin-service-poc
+
+services:
+
+  postgres:
+    image: postgres:16
+    container_name: cce-admin-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # pg_isready: "can Postgres accept connections for this user and database?"
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.5.4   # same version as deploy-scripts
+    container_name: cce-admin-keycloak
+    command: ["start-dev", "--import-realm"]
+    environment:
+      # First admin user of the master realm (admin console login)
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:?set KEYCLOAK_ADMIN_USER in .env}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?set KEYCLOAK_ADMIN_PASSWORD in .env}
+      # Tokens always say iss = http://localhost:8180/realms/cce, however Keycloak is reached
+      KC_HOSTNAME: http://localhost:8180
+      # Turns on /health/ready (inside the container, port 9000) for the health check
+      KC_HEALTH_ENABLED: "true"
+      # Read by the realm file in Step 4 as ${KEYCLOAK_CLIENT_SECRET}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:?set KEYCLOAK_CLIENT_SECRET in .env}
+    ports:
+      - "127.0.0.1:8180:8080"
+    volumes:
+      # Keycloak's own data (users, sessions). Kept by "down", deleted by "down -v".
+      - keycloak-data:/opt/keycloak/data
+      # Realm file(s) imported on start (Step 4). Read-only.
+      - ./local/keycloak:/opt/keycloak/data/import:ro
+    healthcheck:
+      # The image has no curl, so bash opens a TCP connection to port 9000 itself,
+      # sends a plain HTTP GET for /health/ready, and looks for "UP" in the reply.
+      test:
+        - "CMD-SHELL"
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000 &&
+          printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 &&
+          grep -q '"UP"' <&3
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+volumes:
+  postgres-data:
+  keycloak-data:
