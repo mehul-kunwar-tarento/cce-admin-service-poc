@@ -1,0 +1,7 @@
+# Local secrets. Never commit.
+.env
+
+# IDE files
+.idea/
+*.iml
+.vscode/
